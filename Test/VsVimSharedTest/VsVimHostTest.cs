@@ -93,6 +93,7 @@ namespace Vim.VisualStudio.UnitTest
                 _commandDispatcher.Object,
                 sp.Object,
                 _clipboardDevice.Object);
+            _hostRaw.VimCreated(Vim);
             _host = _hostRaw;
         }
 
@@ -134,6 +135,25 @@ namespace Vim.VisualStudio.UnitTest
                         .Returns(true)
                         .Verifiable();
                     Assert.True(_host.GoToDefinition());
+                    _commandDispatcher.Verify();
+                }
+
+                [WpfFact]
+                public void GotoDefinitionClearsDestinationSelection()
+                {
+                    Create();
+                    var textView = CreateTextView("hello world");
+                    Vim.CreateVimBuffer(textView);
+                    _textManager.SetupGet(x => x.ActiveTextViewOptional).Returns(textView);
+                    _commandDispatcher
+                        .Setup(x => x.ExecuteCommand(textView, VsVimHost.CommandNameGoToDefinition, string.Empty, false))
+                        .Callback(() => textView.Selection.Select(new SnapshotSpan(textView.TextSnapshot, 6, 5), false))
+                        .Returns(true)
+                        .Verifiable();
+
+                    Assert.True(_host.GoToDefinition());
+                    Assert.True(textView.Selection.IsEmpty);
+                    Assert.Equal(6, textView.Caret.Position.BufferPosition.Position);
                     _commandDispatcher.Verify();
                 }
 

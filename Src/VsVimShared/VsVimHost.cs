@@ -544,7 +544,34 @@ namespace Vim.VisualStudio
 
         public override bool GoToDefinition()
         {
-            return SafeExecuteCommand(_textManager.ActiveTextViewOptional, CommandNameGoToDefinition);
+            // Visual Studio selects the symbol at the destination of Go To
+            // Definition.  A selection causes VsVim to enter Visual mode, so
+            // clear selections introduced by the command after it completes.
+            //
+            // This cannot be left to StandardCommandTarget: `gd` invokes the
+            // host directly and therefore does not pass through that command
+            // target.
+            var textView = _textManager.ActiveTextViewOptional;
+            var handler = new UnwantedSelectionHandler(_vim);
+            handler.PreAction();
+            try
+            {
+                return SafeExecuteCommand(textView, CommandNameGoToDefinition);
+            }
+            finally
+            {
+                if (textView != null && textView.TextBuffer.ContentType.IsCPlusPlus())
+                {
+                    // C++ Go To Definition is posted (rather than executed)
+                    // because that is what its language service requires. Run
+                    // after the posted command has selected the destination.
+                    _ = _protectedOperations.RunAsync(handler.PostAction, DispatcherPriority.ApplicationIdle);
+                }
+                else
+                {
+                    handler.PostAction();
+                }
+            }
         }
 
         public override bool PeekDefinition()
