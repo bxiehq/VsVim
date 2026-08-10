@@ -561,17 +561,12 @@ namespace Vim.VisualStudio
             }
             finally
             {
-                if (textView != null && textView.TextBuffer.ContentType.IsCPlusPlus())
-                {
-                    // C++ Go To Definition is posted (rather than executed)
-                    // because that is what its language service requires. Run
-                    // after the posted command has selected the destination.
-                    _ = _protectedOperations.RunAsync(handler.PostAction, DispatcherPriority.ApplicationIdle);
-                }
-                else
-                {
-                    handler.PostAction();
-                }
+                handler.PostAction();
+
+                // Language services may apply the destination selection after
+                // the Go To Definition command returns.  Check again once the
+                // current UI work has completed so VsVim stays in Normal mode.
+                _ = _protectedOperations.RunAsync(handler.PostAction, DispatcherPriority.ApplicationIdle);
             }
         }
 
