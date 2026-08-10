@@ -4,7 +4,7 @@ name: VsVim CI
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master", "main", "fix/**" ]
     tags:
       - '*'
   pull_request:
